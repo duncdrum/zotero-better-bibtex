@@ -183,6 +183,22 @@ DB.init = () => {
     }])
   }
 
+  DB.schemaCollection('DOI', {
+    indices: [ 'long' ],
+    schema: {
+      type: 'object',
+      properties: {
+        long: { type: 'string' },
+        short: { type: 'string' },
+
+        // LokiJS
+        meta: { type: 'object' },
+        $loki: { type: 'integer' },
+      },
+      required: [ 'long', 'short' ],
+      additionalProperties: false,
+    },
+  })
 }
 
 // the preferences influence the output way too much, no keeping track of that
