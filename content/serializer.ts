@@ -5,6 +5,7 @@ import debug = require('./debug.ts')
 
 import Cache = require('./db/cache.ts')
 import KeyManager = require('./keymanager.ts')
+import ShortDOI = require('./short-doi.ts')
 import ZoteroDB = require('./db/zotero.ts')
 
 class Serializer {
