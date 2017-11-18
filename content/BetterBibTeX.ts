@@ -25,6 +25,7 @@ import JournalAbbrev = require('./journal-abbrev.ts')
 import AutoExport = require('./auto-export.ts')
 import KeyManager = require('./keymanager.ts')
 import AUXScanner = require('./aux-scanner.ts')
+import ShortDOI = require('./short-doi.ts')
 import format = require('string-template')
 
 import $patch$ = require('./monkey-patch.ts')
@@ -357,6 +358,7 @@ Zotero.Notifier.registerObserver({
         return
     }
 
+    ShortDOI.update(items)
     AutoExport.changed(items)
   },
 }, ['item'], 'BetterBibTeX', 1)

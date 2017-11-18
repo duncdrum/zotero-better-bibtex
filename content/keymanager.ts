@@ -14,6 +14,7 @@ import Citekey = require('./keymanager/get-set.ts')
 import DB = require('./db/main.ts')
 import Formatter = require('./keymanager/formatter.ts')
 import AutoExport = require('./auto-export.ts')
+import ShortDOI = require('./short-doi.ts')
 
 class KeyManager {
   private static postfixRE = {
@@ -191,6 +192,9 @@ class KeyManager {
       AND item.itemTypeID NOT IN (${this.query.type.attachment}, ${this.query.type.note})
     `)
     for (const item of items) {
+      ShortDOI.short(item.doi) // caches the shortDOI
+      ShortDOI.scan(item.extra) // caches the shortDOI
+
       ids.push(item.itemID)
       // if no citekey is found, it will be '', which will allow it to be found right after this loop
       const citekey = Citekey.get(item.extra)
