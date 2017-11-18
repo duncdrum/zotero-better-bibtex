@@ -11,12 +11,13 @@ Scenario Outline: BibLaTeX Export
 
   Examples:
      | file                                                                                           | references  |
+     | date ranges #747+#746                                                                          | 4           |
+     | Option to export with shortDOIs #660                                                           | 4           |
      | biblatex export of Presentation: Use type and venue fields #644                                | 1           |
      | Multiple locations and-or publishers and BibLaTeX export #689                                  | 1           |
      | Treat dash-connected words as a single word for citekey generation #619                        | 1           |
      | customized fields with curly brackets are not exported correctly anymore #775                  | 1           |
      | EDTF dates in BibLaTeX #590                                                                    | 27          |
-     | date ranges #747+#746                                                                          | 4           |
      | Better BibLaTeX.stable-keys                                                                    | 6           |
      | remove the field if the override is empty #303                                                 | 1           |
      | Extra semicolon in biblatexadata causes export failure #133                                    | 3           |

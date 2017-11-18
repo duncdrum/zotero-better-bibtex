@@ -234,7 +234,7 @@ Translator.doExport = () => {
     ref.add({ isbn: item.ISBN })
     ref.add({ issn: item.ISSN })
     ref.add({ url: item.url })
-    ref.add({ doi: item.DOI })
+    ref.add({ doi: item.shortDOI || item.DOI })
     ref.add({ shorttitle: item.shortTitle })
     ref.add({ abstract: item.abstractNote })
     ref.add({ volumes: item.numberOfVolumes })

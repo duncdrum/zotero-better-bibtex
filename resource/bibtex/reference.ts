@@ -562,6 +562,7 @@ export = class Reference {
 
           case 'doi':
             name = cslName
+            if (Translator.preferences.shortDOI) field.value = this.item.shortDOI || field.value
             break
         }
       }

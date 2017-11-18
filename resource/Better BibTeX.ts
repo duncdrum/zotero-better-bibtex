@@ -190,7 +190,7 @@ Translator.doExport = () => {
     ref.add({issn: item.ISSN})
     ref.add({lccn: item.callNumber})
     ref.add({shorttitle: item.shortTitle})
-    ref.add({doi: item.DOI})
+    ref.add({doi: item.shortDOI || item.DOI})
     ref.add({abstract: item.abstractNote})
     ref.add({nationality: item.country})
     ref.add({language: item.language})

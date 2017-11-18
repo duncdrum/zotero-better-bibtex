@@ -1,33 +1,46 @@
 declare const Zotero: any
 
 import Cache = require('./db/cache.ts')
+import Prefs = require('./prefs.ts')
 import debug = require('./debug.ts')
+import Events = require('./events.ts')
 
 export = new class ShortDOI {
   private cache: any
+  private preference = 'shortDOI'
+  private prefixLength: number
+  private prefix: string
+  private enabled: string
 
-	constructor() {
-		this.prefix = 'DOI:'
-    this.preflxLength = prefix.length
-	}
+  constructor() {
+    this.prefix = 'DOI:'
+    this.prefixLength = this.prefix.length
+    this.enabled = Prefs.get(this.preference)
+
+    Events.on('preference-changed', pref => {
+      if (pref !== this.preference) return
+      this.enabled = Prefs.get(this.preference)
+    })
+  }
 
   public get(item) {
-    let short = this.scan(item.getField('extra'))
+    const short = this.scan(item.getField('extra'))
     if (short) return short
     try {
       return this.short(item.getField('DOI'))
     } catch (err) {
-      debug('could not get DOI field')
+      debug('ShortDOI.get: could not get DOI field')
     }
     return null
   }
 
   public short(doi) {
-    if (!doi) return null
+    debug('ShortDOI.short:', {enabled: this.enabled, doi})
+    if (!this.enabled || !doi) return null
 
     this.cache = this.cache || Cache.getCollection('DOI')
     if (!this.cache) {
-      debug('DOI Cache not loaded, try later')
+      debug('ShortDOI.short: DOI Cache not loaded, try later')
       return null
     }
 
@@ -38,22 +51,24 @@ export = new class ShortDOI {
     }
 
     try {
-      const short = Zotero.File.getContentsFromURL(`http://shortdoi.org/${long}?format=json`)
+      const short = Zotero.File.getContentsFromURL(`http://shortdoi.org/${doi}?format=json`)
       if (!short) return null
       const parsed = JSON.parse(short)
-      cache.insert({ long: doi, short: parsed.ShortDOI })
+      debug('ShortDOI.short:', { long: doi, short: parsed })
+      this.cache.insert({ long: doi, short: parsed.ShortDOI })
       return parsed.ShortDOI
     } catch (err) {
-      debug('shortDOI:', err)
+      debug('ShortDOI.short:', err)
     }
 
     return null
   }
 
-	public scan(extra) {
-		if (!extra) return null
+  public scan(extra) {
+    if (this.enabled !== 'scan' || !extra) return null
 
-    for (const line of item.extra.split('\n').filter(line => line.startsWith(this.prefix))) {
+    for (const line of extra.split('\n')) {
+      if (!line.startsWith(this.prefix)) continue
       const short = this.short(line.substring(this.prefixLength).trim())
       if (short) return short
     }
@@ -62,7 +77,7 @@ export = new class ShortDOI {
   }
 
   public update(items) {
-    for (const item in items) {
+    for (const item of items) {
       this.get(item)
     }
   }

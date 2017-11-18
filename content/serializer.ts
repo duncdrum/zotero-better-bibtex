@@ -5,7 +5,7 @@ import debug = require('./debug.ts')
 
 import Cache = require('./db/cache.ts')
 import KeyManager = require('./keymanager.ts')
-import ShortDOI = require('./short-doi.ts')
+// import ShortDOI = require('./short-doi.ts')
 import ZoteroDB = require('./db/zotero.ts')
 
 class Serializer {
@@ -149,10 +149,7 @@ class Serializer {
     const cached = cache.findOne({ itemID: item.id, legacy: !!legacy, skipChildItems: !!skipChildItems})
     if (!cached) return null
 
-    const serialized = cached.item
-    serialized.journalAbbreviation = Abbrevs.get(serialized)
-    if (!['note', 'attachment'].includes(serialized.itemType)) serialized.citekey = KeyManager.get(item.id).citekey
-    return serialized
+    return this.enrich(item, cached.item)
   }
 
   public store(item, serialized, legacy, skipChildItems) {
@@ -168,12 +165,24 @@ class Serializer {
       Zotero.logError(new Error('Serializer.store ignored, DB not yet loaded'))
     }
 
-    serialized.journalAbbreviation = Abbrevs.get(serialized)
-    if (!['note', 'attachment'].includes(serialized.itemType)) serialized.citekey = KeyManager.get(item.id).citekey
-    return serialized
+    return this.enrich(item, serialized)
   }
 
   public serialize(item) { return Zotero.Utilities.Internal.itemToExportFormat(item, false, true) }
+
+  private enrich(item, serialized) {
+    switch (serialized.itemType) {
+      case 'note':
+      case 'attachment':
+        return
+    }
+
+    serialized.journalAbbreviation = Abbrevs.get(serialized)
+    serialized.citekey = KeyManager.get(item.id).citekey
+    // serialized.shortDOI = ShortDOI.get(item)
+
+    return serialized
+  }
 }
 
 export = new Serializer()

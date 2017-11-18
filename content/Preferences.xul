@@ -324,6 +324,14 @@
         -->
 
         <preference
+          name="extensions.zotero.translators.better-bibtex.shortDOI"
+          type="string"
+          default=""/>
+        <!--!
+          Exports short-DOIs instead of full DOIs
+        -->
+
+        <preference
           name="extensions.zotero.translators.better-bibtex.scrubDatabase"
           type="bool"
           default="false"/>
