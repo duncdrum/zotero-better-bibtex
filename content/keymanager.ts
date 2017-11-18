@@ -26,7 +26,10 @@ class KeyManager {
 
   private scanning: any[]
   private query: {
-    field: { extra?: number }
+    field: {
+      extra?: number
+      DOI?: number
+    }
     type: {
       note?: number,
       attachment?: number
@@ -118,7 +121,7 @@ class KeyManager {
       type: {},
     }
 
-    for (const field of await ZoteroDB.queryAsync("select fieldID, fieldName from fields where fieldName in ('extra')")) {
+    for (const field of await ZoteroDB.queryAsync("select fieldID, fieldName from fields where fieldName in ('extra', 'DOI')")) {
       this.query.field[field.fieldName] = field.fieldID
     }
     for (const type of await ZoteroDB.queryAsync("select itemTypeID, typeName from itemTypes where typeName in ('note', 'attachment')")) { // 1, 14
@@ -171,10 +174,12 @@ class KeyManager {
 
     const ids = []
     const items = await ZoteroDB.queryAsync(`
-      SELECT item.itemID, item.libraryID, item.key, extra.value as extra, item.itemTypeID
+      SELECT item.itemID, item.libraryID, item.key, extra.value as extra, doi.value as doi, item.itemTypeID
       FROM items item
-      LEFT JOIN itemData field ON field.itemID = item.itemID AND field.fieldID = ${this.query.field.extra}
-      LEFT JOIN itemDataValues extra ON extra.valueID = field.valueID
+      LEFT JOIN itemData extraField ON extraField.itemID = item.itemID AND extraField.fieldID = ${this.query.field.extra}
+      LEFT JOIN itemDataValues extra ON extra.valueID = extraField.valueID
+      LEFT JOIN itemData doiField ON doiField.itemID = item.itemID AND doiField.fieldID = ${this.query.field.DOI}
+      LEFT JOIN itemDataValues doi ON doi.valueID = doiField.valueID
       WHERE item.itemID NOT IN (select itemID from deletedItems)
       AND item.itemTypeID NOT IN (${this.query.type.attachment}, ${this.query.type.note})
     `)
