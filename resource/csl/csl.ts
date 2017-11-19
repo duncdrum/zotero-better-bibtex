@@ -170,6 +170,8 @@ export = new class CSLExporter {
       }
       if (csl.type === 'broadcast' && csl.genre === 'television broadcast') delete csl.genre
 
+      if (item.shortDOI && Translator.preferences.shortDOI) item.DOI = item.shortDOI
+
       csl = this.serialize(csl)
 
       Zotero.BetterBibTeX.cacheStore(item.itemID, Translator.options, csl)
