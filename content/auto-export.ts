@@ -3,106 +3,76 @@ declare const Components: any
 
 import debug = require('./debug.ts')
 
-import Queue = require('better-queue')
-import MemoryStore = require('better-queue-memory')
+import Queue = require('./queue.ts')
 import Events = require('./events.ts')
 import DB = require('./db/main.ts')
 import Translators = require('./translators.ts')
 import Prefs = require('./prefs.ts')
 
-function queueHandler(handler) {
-  return (task, cb) => {
-    handler(task).then(() => cb(null)).catch(err => {
-      debug('AutoExport: task failed', task, err)
-      cb(err)
-    })
-
-    return {
-      cancel() { task.cancelled = true },
-    }
-  }
-}
-
 const scheduled = new Queue(
-  queueHandler(
-    async task => {
-      const db = DB.getCollection('autoexport')
-      const ae = db.get(task.id)
-      if (!ae) throw new Error(`AutoExport ${task.id} not found`)
+  async task => {
+    const db = DB.getCollection('autoexport')
+    const ae = db.get(task.id)
+    if (!ae) throw new Error(`AutoExport ${task.id} not found`)
 
-      debug('AutoExport.starting export', ae)
-      ae.status = 'running'
-      db.update(ae)
+    debug('AutoExport.starting export', ae)
+    ae.status = 'running'
+    db.update(ae)
 
-      try {
-        let items
-        switch (ae.type) {
-          case 'collection':
-            items = { collection: ae.id }
-            break
-          case 'library':
-            items = { library: ae.id }
-            break
-          default:
-            items = null
-        }
-
-        await Translators.translate(ae.translatorID, { exportNotes: ae.exportNotes, useJournalAbbreviation: ae.useJournalAbbreviation}, items, ae.path)
-        ae.error = ''
-      } catch (err) {
-        debug('AutoExport.scheduled failed for', ae, err)
-        ae.error = `${err}`
+    try {
+      let items
+      switch (ae.type) {
+        case 'collection':
+          items = { collection: ae.id }
+          break
+        case 'library':
+          items = { library: ae.id }
+          break
+        default:
+          items = null
       }
 
-      ae.status = 'done'
-      ae.updated = new Date()
-      db.update(ae)
+      await Translators.translate(ae.translatorID, { exportNotes: ae.exportNotes, useJournalAbbreviation: ae.useJournalAbbreviation}, items, ae.path)
+      ae.error = ''
+    } catch (err) {
+      debug('AutoExport.scheduled failed for', ae, err)
+      ae.error = `${err}`
     }
-  ),
 
-  {
-    store: new MemoryStore(),
-    // https://bugs.chromium.org/p/v8/issues/detail?id=4718
-    setImmediate: setTimeout.bind(null),
+    ae.status = 'done'
+    ae.updated = new Date()
+    db.update(ae)
   }
 )
 scheduled.resume()
 
 const debounce_delay = 1000
 const scheduler = new Queue(
-  queueHandler(
-    async task => {
-      task = {...task}
-      debug('AutoExport.scheduler.exec:', task)
+  async task => {
+    task = {...task}
+    debug('AutoExport.scheduler.exec:', task)
 
-      const db = DB.getCollection('autoexport')
-      const ae = db.get(task.id)
-      if (!ae) throw new Error(`AutoExport ${task.id} not found`)
+    const db = DB.getCollection('autoexport')
+    const ae = db.get(task.id)
+    if (!ae) throw new Error(`AutoExport ${task.id} not found`)
 
-      debug('AutoExport.scheduler.task found:', task, '->', ae, !!ae)
-      ae.status = 'scheduled'
-      db.update(ae)
-      debug('AutoExport.scheduler.task scheduled, waiting...', task, ae)
+    debug('AutoExport.scheduler.task found:', task, '->', ae, !!ae)
+    ae.status = 'scheduled'
+    db.update(ae)
+    debug('AutoExport.scheduler.task scheduled, waiting...', task, ae)
 
-      await Zotero.Promise.delay(debounce_delay)
+    await Zotero.Promise.delay(debounce_delay)
 
-      debug('AutoExport.scheduler.task scheduled, woken', task, ae)
+    debug('AutoExport.scheduler.task scheduled, woken', task, ae)
 
-      if (task.cancelled) {
-        debug('AutoExport.canceled export', ae)
-      } else {
-        debug('AutoExport.scheduled export', ae)
-        scheduled.push(task)
-      }
+    if (task.cancelled) {
+      debug('AutoExport.canceled export', ae)
+    } else {
+      debug('AutoExport.scheduled export', ae)
+      scheduled.push(task)
     }
-  ),
-
-  {
-    store: new MemoryStore(),
-    cancelIfRunning: true,
-    // https://bugs.chromium.org/p/v8/issues/detail?id=4718
-    setImmediate: setTimeout.bind(null),
-  }
+  },
+  { cancelIfRunning: true }
 )
 
 if (Prefs.get('autoExport') !== 'immediate') { scheduler.pause() }
