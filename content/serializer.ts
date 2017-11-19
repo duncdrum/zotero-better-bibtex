@@ -5,7 +5,7 @@ import debug = require('./debug.ts')
 
 import Cache = require('./db/cache.ts')
 import KeyManager = require('./keymanager.ts')
-// import ShortDOI = require('./short-doi.ts')
+import ShortDOI = require('./short-doi.ts')
 import ZoteroDB = require('./db/zotero.ts')
 
 class Serializer {
@@ -179,7 +179,7 @@ class Serializer {
       default:
         serialized.citekey = KeyManager.get(item.id).citekey
         serialized.journalAbbreviation = Abbrevs.get(serialized)
-        // serialized.shortDOI = ShortDOI.get(item)
+        serialized.shortDOI = ShortDOI.get(item)
         break
     }
     return serialized
