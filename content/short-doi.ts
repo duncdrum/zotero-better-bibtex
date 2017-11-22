@@ -81,4 +81,16 @@ export = new class ShortDOI {
       this.get(item)
     }
   }
+
+  public resolve(items) {
+  }
+  Promise.all(promises.map(function(promise) {
+    return promise.reflect();
+})).each(function(inspection) {
+    if (inspection.isFulfilled()) {
+        console.log("A promise in the array was fulfilled with", inspection.value());
+    } else {
+        console.error("A promise in the array was rejected with", inspection.reason());
+    }
+});
 }
