@@ -138,15 +138,22 @@ class KeyManager {
       }
     })
 
+    debug('Keymanager.init: installing delayed notification')
     this.keys.on(['insert', 'update'], citekey => {
+      debug('Keymanager.init.update:', citekey)
       // async is just a heap of fun. Who doesn't enjoy a good race condition?
       // https://github.com/retorquere/zotero-better-bibtex/issues/774
       // https://groups.google.com/forum/#!topic/zotero-dev/yGP4uJQCrMc
-      setTimeout(() => {
-        // update display panes
-        Zotero.Notifier.trigger('modify', 'item', [citekey.itemID], { [citekey.itemID]: { bbtCitekeyUpdate: true } })
-      }, this.itemObserverDelay)
+      try {
+        setTimeout(() => {
+          // update display panes
+          Zotero.Notifier.trigger('modify', 'item', [citekey.itemID], { [citekey.itemID]: { bbtCitekeyUpdate: true } })
+        }, this.itemObserverDelay)
+      } catch (err) {
+        debug('Keymanager.init.update failed:', err)
+      }
     })
+    debug('Keymanager.init: delayed notification installed')
   }
 
   public async rescan(clean?: boolean) {
