@@ -71,7 +71,7 @@ const scheduled = new Queue(
   {
     store: new MemoryStore(),
     // https://bugs.chromium.org/p/v8/issues/detail?id=4718
-    setImmediate: setTimeout.bind(null),
+    setImmediate: Zotero.BetterBibTeX.setTimeout.bind(Zotero.BetterBibTeX),
   }
 )
 scheduled.resume()
@@ -108,7 +108,7 @@ const scheduler = new Queue(
     store: new MemoryStore(),
     cancelIfRunning: true,
     // https://bugs.chromium.org/p/v8/issues/detail?id=4718
-    setImmediate: setTimeout.bind(null),
+    setImmediate: Zotero.BetterBibTeX.setTimeout.bind(Zotero.BetterBibTeX),
   }
 )
 

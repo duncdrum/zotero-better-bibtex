@@ -31,7 +31,6 @@ import format = require('string-template')
 import $patch$ = require('./monkey-patch.ts')
 
 const bbtReady = Zotero.Promise.defer()
-const pane = Zotero.getActiveZoteroPane() // can Zotero 5 have more than one pane at all?
 
 /*
   UNINSTALL
@@ -122,18 +121,6 @@ $patch$(Zotero.Search.prototype, 'search', original => Zotero.Promise.coroutine(
   return ids
 }))
 */
-
-// Monkey patch because of https://groups.google.com/forum/#!topic/zotero-dev/zy2fSO1b0aQ
-$patch$(pane, 'serializePersist', original => function() {
-  original.apply(this, arguments)
-
-  let persisted
-  if (Zotero.BetterBibTeX.uninstalled && (persisted = Zotero.Prefs.get('pane.persist'))) {
-    persisted = JSON.parse(persisted)
-    delete persisted['zotero-items-column-citekey']
-    Zotero.Prefs.set('pane.persist', JSON.stringify(persisted))
-  }
-})
 
 // otherwise the display of the citekey in the item pane flames out
 $patch$(Zotero.ItemFields, 'isFieldOfBase', original => function(field, baseField) {
@@ -486,30 +473,29 @@ class Progress {
   }
 }
 
-export = new class BetterBibTeX {
+class BetterBibTeX {
   public ready: any
   private strings: any
   private firstRun: { citekeyFormat: String, dragndrop: boolean }
+  private window: any
+  private document: any
+  private pane: any
 
   constructor() {
-    if (Zotero.BetterBibTeX) {
-      debug("MacOS and its weird \"I'm sort of closed but not really\" app handling makes init run again...")
-    } else {
-      this.ready = bbtReady.promise
-      window.addEventListener('load', this.load.bind(this), false)
-    }
+    this.ready = bbtReady.promise
+    window.addEventListener('load', this.load.bind(this), false)
   }
 
   public pullExport() {
-    if (!pane.collectionsView || !pane.collectionsView.selection || !pane.collectionsView.selection.count) return ''
+    if (!this.pane.collectionsView || !this.pane.collectionsView.selection || !this.pane.collectionsView.selection.count) return ''
 
     const translator = 'biblatex'
-    const row = pane.collectionsView.selectedTreeRow
+    const row = this.pane.collectionsView.selectedTreeRow
 
     const root = `http://localhost:${Zotero.Prefs.get('httpServer.port')}/better-bibtex/`
 
     if (row.isCollection()) {
-      let collection = pane.getSelectedCollection()
+      let collection = this.pane.getSelectedCollection()
       const short = `collection?/${collection.libraryID || 0}/${collection.key}.${translator}`
 
       const path = [encodeURIComponent(collection.name)]
@@ -523,7 +509,7 @@ export = new class BetterBibTeX {
     }
 
     if (row.isLibrary(true)) {
-      const libId = pane.getSelectedLibraryID()
+      const libId = this.pane.getSelectedLibraryID()
       const short = libId ? `library?/${libId}/library.${translator}` : `library?library.${translator}`
       return `${root}${short}`
     }
@@ -540,15 +526,16 @@ export = new class BetterBibTeX {
 
     let items = null
 
-    switch (pane && includeReferences) {
-      case 'collection': case 'library':
-        items = { collection: pane.getSelectedCollection() }
-        if (!items.collection) items = { library: pane.getSelectedLibraryID() }
+    switch (this.pane && includeReferences) {
+      case 'collection':
+      case 'library':
+        items = { collection: this.pane.getSelectedCollection() }
+        if (!items.collection) items = { library: this.pane.getSelectedLibraryID() }
         break
 
       case 'items':
         try {
-          items = { items: pane.getSelectedItems() }
+          items = { items: this.pane.getSelectedItems() }
         } catch (err) { // zoteroPane.getSelectedItems() doesn't test whether there's a selection and errors out if not
           debug('Could not get selected items:', err)
           items = {}
@@ -579,12 +566,38 @@ export = new class BetterBibTeX {
     }
   }
 
+  public setTimeout(code, ms) {
+    this.window.setTimeout(code, ms)
+  }
+
+  public configure() {
+    this.document = document
+    this.window = document
+    this.pane = Zotero.getActiveZoteroPane()
+
+    this.strings = this.document.getElementById('zotero-better-bibtex-strings')
+
+    // Monkey patch because of https://groups.google.com/forum/#!topic/zotero-dev/zy2fSO1b0aQ
+    $patch$(this.pane, 'serializePersist', original => function() {
+      original.apply(this, arguments)
+
+      let persisted
+      if (Zotero.BetterBibTeX.uninstalled && (persisted = Zotero.Prefs.get('pane.persist'))) {
+        persisted = JSON.parse(persisted)
+        delete persisted['zotero-items-column-citekey']
+        Zotero.Prefs.set('pane.persist', JSON.stringify(persisted))
+      }
+    })
+
+    return this
+  }
+
   private async load() {
     debug('Loading Better BibTeX: starting...')
 
-    this.strings = document.getElementById('zotero-better-bibtex-strings')
+    this.configure()
 
-    for (const node of [...document.getElementsByClassName('bbt-texstudio')]) {
+    for (const node of [...this.document.getElementsByClassName('bbt-texstudio')]) {
       node.hidden = !TeXstudio.enabled
     }
 
@@ -641,5 +654,4 @@ export = new class BetterBibTeX {
   }
 }
 
-// otherwise this entry point won't be reloaded: https://github.com/webpack/webpack/issues/156
-delete require.cache[module.id]
+export = Zotero.BetterBibTeX ? Zotero.BetterBibTeX.configure() : new BetterBibTeX
