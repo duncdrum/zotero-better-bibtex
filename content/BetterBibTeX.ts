@@ -567,7 +567,7 @@ class BetterBibTeX {
   }
 
   public setTimeout(code, ms) {
-    this.window.setTimeout(code, ms)
+    return this.window.setTimeout(code, ms)
   }
 
   public configure() {
@@ -654,4 +654,7 @@ class BetterBibTeX {
   }
 }
 
-export = Zotero.BetterBibTeX ? Zotero.BetterBibTeX.configure() : new BetterBibTeX
+export = (Zotero.BetterBibTeX ? Zotero.BetterBibTeX.configure() : (new BetterBibTeX))
+
+// otherwise this entry point won't be reloaded: https://github.com/webpack/webpack/issues/156
+delete require.cache[module.id]

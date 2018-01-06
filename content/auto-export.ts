@@ -10,6 +10,11 @@ import DB = require('./db/main.ts')
 import Translators = require('./translators.ts')
 import Prefs = require('./prefs.ts')
 
+function delay(code, ms) {
+  // damn you macos
+  return (Zotero.BetterBibTeX || document).setTimeout(code, ms)
+}
+
 function queueHandler(kind, handler) {
   return (task, cb) => {
     debug('AutoExport.queue:', kind, task)
@@ -71,7 +76,7 @@ const scheduled = new Queue(
   {
     store: new MemoryStore(),
     // https://bugs.chromium.org/p/v8/issues/detail?id=4718
-    setImmediate: Zotero.BetterBibTeX.setTimeout.bind(Zotero.BetterBibTeX),
+    setImmediate: delay,
   }
 )
 scheduled.resume()
@@ -108,7 +113,7 @@ const scheduler = new Queue(
     store: new MemoryStore(),
     cancelIfRunning: true,
     // https://bugs.chromium.org/p/v8/issues/detail?id=4718
-    setImmediate: Zotero.BetterBibTeX.setTimeout.bind(Zotero.BetterBibTeX),
+    setImmediate: delay,
   }
 )
 
